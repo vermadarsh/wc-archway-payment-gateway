@@ -226,8 +226,6 @@ class Cf_Core_Functions_Public {
 		 */
 		$payment_parameters = apply_filters( 'cf_archway_payment_args', $payment_parameters );
 
-		debug( $payment_parameters );
-
 		// Process the API now.
 		$api_url  = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
 		$response = wp_remote_post(
