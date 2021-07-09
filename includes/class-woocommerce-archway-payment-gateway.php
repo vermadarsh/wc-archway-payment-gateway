@@ -45,6 +45,8 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
         $this->description  = $this->get_option( 'description' );
         $this->instructions = $this->get_option( 'instructions', $this->description );
         $this->order_status = $this->get_option( 'order_status', 'completed' );
+        $this->api_url      = $this->get_option( 'api_url' );
+        $this->api_key      = $this->get_option( 'api_key' );
 
         // Actions
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
@@ -94,6 +96,20 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
                 'type'        => 'textarea',
                 'description' => __( 'Instructions that will be added to the thank you page and emails.', $this->domain ),
                 'default'     => '',
+                'desc_tip'    => true,
+            ),
+            'api_url' => array(
+                'title'       => __( 'API URL', $this->domain ),
+                'type'        => 'text',
+                'description' => __( 'This controls the api url which pass to parameters on archway payment gateway.', $this->domain ),
+                'default'     => __( 'API URL', $this->domain ),
+                'desc_tip'    => true,
+            ),
+            'api_key' => array(
+                'title'       => __( 'API KEY', $this->domain ),
+                'type'        => 'password',
+                'description' => __( 'This controls the api key which pass to archway payment gateway API.', $this->domain ),
+                'default'     => __( 'API KEY', $this->domain ),
                 'desc_tip'    => true,
             ),
         );
