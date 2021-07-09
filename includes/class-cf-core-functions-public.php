@@ -34,6 +34,8 @@ class Cf_Core_Functions_Public {
 		add_action( 'woocommerce_checkout_process', array( $this, 'cf_woocommerce_checkout_process_callback' ) );
 		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'cf_woocommerce_checkout_update_order_meta_callback' ) );
 		add_filter( 'cf_archway_payment_args', array( $this, 'cf_cf_archway_payment_args_callback' ) );
+		add_filter( 'woocommerce_checkout_posted_data', array( $this, 'cf_woocommerce_checkout_posted_data_callback' ) );
+		add_action( 'woocommerce_checkout_order_processed', array( $this, 'cf_woocommerce_checkout_order_processed_callback' ), 20, 2 );
 	}
 
 	/**
@@ -227,9 +229,10 @@ class Cf_Core_Functions_Public {
 		$payment_parameters = apply_filters( 'cf_archway_payment_args', $payment_parameters );
 
 		// Process the API now.
-		$api_url  = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
+		$sandbox_api_url    = 'https://devapi.archwaypayments.com/v1/test/transaction/ProcessTransaction';
+		$production_api_url = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
 		$response = wp_remote_post(
-			$api_url,
+			$sandbox_api_url,
 			array(
 				'method'  => 'POST',
 				'body'    => wp_json_encode( $payment_parameters ),
@@ -243,13 +246,31 @@ class Cf_Core_Functions_Public {
 
 		// Get the response code.
 		$response_code = wp_remote_retrieve_response_code( $response );
-		var_dump( $response_code );
-		die;
 
-		// Get the response body.
-		$response_body = wp_remote_retrieve_body( $response );
-		$response_body = json_decode( $response_body );
+		// Is it's a success.
+		if ( 200 === $response_code ) {
+			// Get the response body.
+			$response_body = wp_remote_retrieve_body( $response );
+			$response_body = json_decode( $response_body );
+
+			// Get the transaction ID.
+			$transaction_id = ( ! empty( $response_body->transaction_id ) ) ? $response_body->transaction_id : '';
+
+			if ( ! empty( $transaction_id ) ) {
+				// Set this ID in the session to be accessible during saving checkout data.
+				WC()->session->set( 'cf_archway_transaction_id', $transaction_id );
+			}
+		} elseif ( 400 === $response_code ) {
+			// Get the response body.
+			$response_body = wp_remote_retrieve_body( $response );
+			$response_body = json_decode( $response_body );
+			$error_message = ( ! empty( $response_body->errors[0]->description ) ) ? $response_body->errors[0]->description : '';
+			if ( ! empty( $error_message ) ) {
+				wc_add_notice( $error_message, 'error' );
+			}
+		}
 	}
+
 	/**
 	 * Save the card details in the database.
 	 *
@@ -300,5 +321,50 @@ class Cf_Core_Functions_Public {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * Add the transaction ID to the posted session data.
+	 *
+	 * @param array $posted_data Checkout posted data.
+	 * @return array
+	 * @since 1.0.0
+	 */
+	public function cf_woocommerce_checkout_posted_data_callback( $posted_data ) {
+		// Get the selected payment method.
+		$payment_method = ( ! empty( $posted_data['payment_method'] ) ) ? $posted_data['payment_method'] : '';
+
+		// If it's not the archway payment gateway, return.
+		if ( ! empty( $payment_method ) && 'archway_payments' !== $payment_method ) {
+			return $posted_data;
+		}
+
+		// Get the transaction ID from the session.
+		$transaction_id = WC()->session->get( 'cf_archway_transaction_id' );
+
+		if ( ! empty( $transaction_id ) ) {
+			$posted_data['archway_transaction_id'] = $transaction_id;
+		}
+		
+		return $posted_data; 
+	}
+
+	/**
+	 * Update the transaction ID to the database.
+	 *
+	 * @param int   $order_id WooCommerce order ID.
+	 * @param array $posted_data Checkout posted data.
+	 * @since 1.0.0
+	 */
+	public function cf_woocommerce_checkout_order_processed_callback( $order_id, $posted_data ) {
+		// Get the transaction ID from the posted data.
+		$transaction_id = ( ! empty( $posted_data['archway_transaction_id'] ) ) ? $posted_data['archway_transaction_id'] : '';
+
+		if ( ! empty( $transaction_id ) ) {
+			update_post_meta( $order_id, 'archway-payment-transaction-id', $transaction_id );
+
+			// Unset the session now.
+			WC()->session->__unset( 'cf_archway_transaction_id' );
+		}
 	}
 }

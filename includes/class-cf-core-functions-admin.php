@@ -30,7 +30,8 @@ class Cf_Core_Functions_Admin {
 	 */
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', array( $this, 'cf_admin_enqueue_scripts_callback' ) );
-		// add_action( 'woocommerce_admin_order_data_after_billing_address', array( $this, 'custom_checkout_field_display_admin_order_meta' ), 10, 1 );
+		add_action( 'add_meta_boxes', array( $this, 'cf_add_meta_boxes_callback' ) );
+		add_action( 'wp_ajax_get_transaction', array( $this, 'cf_get_transaction_callback' ) );
 	}
 
 	/**
@@ -63,26 +64,103 @@ class Cf_Core_Functions_Admin {
 			)
 		);
 	}
+
 	/**
-	 * Display field value on the order edit page
+	 * Add custom metabox.
+	 *
+	 * @since 1.0.0
 	 */
-	 function custom_checkout_field_display_admin_order_meta($order){
-	     $method = get_post_meta( $order->id, '_payment_method', true );
-	     if($method != 'archway_payments')
-	         return;
+	public function cf_add_meta_boxes_callback() {
+		// Add metabox to woocommerce order for archway payment gateway.
+		add_meta_box(
+			'cf-archway-payment-method-data',
+			__( 'Archway: Transaction Details', 'wc-archway-payment-gateway' ),
+			array( $this, 'cf_archway_transaction_data_callback' ),
+			'shop_order',
+			'normal'
+		);
+	}
 
-	     $cardNumber = get_post_meta( $order->id, 'cardNumber', true );
-	     $card_holder = get_post_meta( $order->id, 'card-holder', true );
-	     $expiry_month = get_post_meta( $order->id, 'expiry_month', true );
-	     $expiry_year = get_post_meta( $order->id, 'expiry_year', true );
-	     $cvv = get_post_meta( $order->id, 'cvv', true );
+	/**
+	 * Archway transaction metabox callback.
+	 */
+	public function cf_archway_transaction_data_callback() {
+		$post_id = filter_input( INPUT_GET, 'post', FILTER_SANITIZE_NUMBER_INT );
 
+		// Get the transaction ID.
+		$transaction_id = get_post_meta( $post_id, 'archway-payment-transaction-id', true );
 
-	     echo '<p><strong>'.__( 'Mobile Number' ).':</strong> ' . $mobile . '</p>';
-	     echo '<p><strong>'.__( 'Mobile Number' ).':</strong> ' . $mobile . '</p>';
-	     echo '<p><strong>'.__( 'Mobile Number' ).':</strong> ' . $mobile . '</p>';
-	     echo '<p><strong>'.__( 'Mobile Number' ).':</strong> ' . $mobile . '</p>';
-	     echo '<p><strong>'.__( 'Mobile Number' ).':</strong> ' . $mobile . '</p>';
+		if ( ! empty( $transaction_id ) ) {
+			echo '<p>';
+			echo sprintf( __( '%2$sTransaction ID: %1$s%3$s', 'wc-archway-payment-gateway' ), $transaction_id, '<span>', '</span>' );
+			echo '<a class="cf-view-transaction-details" href="javascript:void(0);">' . __( 'View Details', 'wc-archway-payment-gateway' ) . '</a>';
+			echo '</p>';
+			echo '<div class="cf-transaction-details"></div>';
+		}
+	}
 
-	 }
+	/**
+	 * AJAX for fetching transaction.
+	 *
+	 * @since 1.0.0
+	 */
+	public function cf_get_transaction_callback() {
+		$action = filter_input( INPUT_POST, 'action', FILTER_SANITIZE_STRING );
+
+		// Exit, if the action doesn't match.
+		if ( empty( $action ) || 'get_transaction' !== $action ) {
+			echo 0;
+			wp_die();
+		}
+
+		// Posted items.
+		$order_id = (int) filter_input( INPUT_POST, 'order_id', FILTER_SANITIZE_NUMBER_INT );
+
+		// Get the transaction ID from the database.
+		$transaction_id = get_post_meta( $order_id, 'archway-payment-transaction-id', true );
+
+		// Get the transaction data.
+		$transaction = cf_get_transaction( $transaction_id );
+
+		// Prepare the HTML if the transaction data is received.
+		ob_start();
+		if ( false !== $transaction && is_array( $transaction ) ) {
+			$transaction_arr = array(
+				'Card Number'  => ( ! empty( $transaction['card_number'] ) ) ? $transaction['card_number'] : '',
+				'IP'           => ( ! empty( $transaction['ip'] ) ) ? $transaction['ip'] : '',
+				'Descriptor'   => ( ! empty( $transaction['descriptor'] ) ) ? $transaction['descriptor'] : '',
+				'Order Number' => ( ! empty( $transaction['order_number'] ) ) ? $transaction['order_number'] : '',
+				'Status'       => ( ! empty( $transaction['status'] ) ) ? $transaction['status'] : '',
+				'Message'      => ( ! empty( $transaction['message'] ) ) ? $transaction['message'] : '',
+				'Created At'   => ( ! empty( $transaction['created_at'] ) ) ? $transaction['created_at'] : '',
+				'Updated At'   => ( ! empty( $transaction['updated_at'] ) ) ? $transaction['updated_at'] : '',
+			);
+			?>
+			<table class="cf-transaction-data">
+				<tbody>
+					<?php foreach( $transaction_arr as $data_index => $transaction_data ) { ?>
+						<tr>
+							<td scope="row"><label for=""><?php echo esc_html( $data_index ); ?></label></td>
+							<td><?php echo esc_html( $transaction_data ); ?></td>
+						</tr>
+					<?php } ?>
+				</tbody>
+			</table>
+			<?php
+		} else {
+			?>
+			<p><?php esc_html_e( 'Unable to fetch transaction data.', 'wc-archway-payment-gateway' ); ?></p>
+			<?php
+		}
+
+		$html = ob_get_clean();
+
+		// Send back the final response.
+		$response = array(
+			'code' => 'cf-transaction-details-fetched',
+			'html' => $html,
+		);
+		wp_send_json_success( $response );
+		wp_die();
+	}
 }

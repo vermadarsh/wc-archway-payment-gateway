@@ -113,3 +113,38 @@ if ( ! function_exists( 'cf_is_localhost' ) ) {
 		return ( in_array( $current_ip, $localhost_ip_addresses, true ) ) ? true : false;
 	}
 }
+
+/**
+ * Check if the function exists.
+ */
+if ( ! function_exists( 'cf_get_transaction' ) ) {
+	/**
+	 * Get the archway transaction details.
+	 *
+	 * @param int $transaction_id Archway transaction ID.
+	 * @return array|boolean
+	 * @since 1.0.0
+	 */
+	function cf_get_transaction( $transaction_id ) {
+		$api_url = "https://devapi.archwaypayments.com/v1/test/transaction/transaction?transaction_id={$transaction_id}";
+
+		$response = wp_remote_get(
+			$api_url,
+			array(
+				'headers' => array(
+					'X-Api-Key' => '2Xz7Gr5TnYj9esgL48MpZ26KixGE3R2c',
+				)
+			)
+		);
+
+		$response_code = wp_remote_retrieve_response_code( $response );
+
+		if ( 200 === $response_code ) {
+			$response_body = json_decode( wp_remote_retrieve_body( $response ) );
+
+			return (array) $response_body;
+		}
+
+		return false;
+	}
+}
