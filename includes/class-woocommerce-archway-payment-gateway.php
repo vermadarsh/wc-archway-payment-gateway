@@ -22,24 +22,14 @@
  */
 class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 	/**
-	 * Payment domain.
-	 *
-	 * @since 1.0.0
-	 * @access protected
-	 * @var string $domain Payment domain.
-	 */
-	protected $domain;
-
-	/**
 	 * Constructor for the gateway.
 	 */
 	public function __construct() {
-		$this->domain             = 'archway_payment_gateway';
 		$this->id                 = 'archway_payments';
-		$this->icon               = apply_filters('woocommerce_custom_gateway_icon', '');
+		$this->icon               = apply_filters( 'woocommerce_custom_gateway_icon', '' );
 		$this->has_fields         = false;
-		$this->method_title       = __( 'Archway Payments', $this->domain );
-		$this->method_description = __( 'Allows payments with custom gateway.', $this->domain );
+		$this->method_title       = __( 'Archway Payments', 'wc-archway-payment-gateway' );
+		$this->method_description = __( 'Allows payments with custom gateway.', 'wc-archway-payment-gateway' );
 
 		// Load the settings.
 		$this->init_form_fields();
@@ -68,53 +58,66 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 
 		$this->form_fields = array(
 			'enabled' => array(
-				'title'   => __( 'Enable/Disable', $this->domain ),
+				'title'   => __( 'Enable/Disable', 'wc-archway-payment-gateway' ),
 				'type'    => 'checkbox',
-				'label'   => __( 'Enable Custom Payment', $this->domain ),
+				'label'   => __( 'Enable Custom Payment', 'wc-archway-payment-gateway' ),
 				'default' => 'yes'
 			),
 			'title' => array(
-				'title'       => __( 'Title', $this->domain ),
+				'title'       => __( 'Title', 'wc-archway-payment-gateway' ),
 				'type'        => 'text',
-				'description' => __( 'This controls the title which the user sees during checkout.', $this->domain ),
-				'default'     => __( 'Archway Payments', $this->domain ),
+				'description' => __( 'This controls the title which the user sees during checkout.', 'wc-archway-payment-gateway' ),
+				'default'     => __( 'Archway Payments', 'wc-archway-payment-gateway' ),
 				'desc_tip'    => true,
 			),
 			'order_status' => array(
-				'title'       => __( 'Order Status', $this->domain ),
+				'title'       => __( 'Order Status', 'wc-archway-payment-gateway' ),
 				'type'        => 'select',
 				'class'       => 'wc-enhanced-select',
-				'description' => __( 'Choose whether status you wish after checkout.', $this->domain ),
+				'description' => __( 'Choose whether status you wish after checkout.', 'wc-archway-payment-gateway' ),
 				'default'     => 'wc-completed',
 				'desc_tip'    => true,
 				'options'     => wc_get_order_statuses()
 			),
 			'description' => array(
-				'title'       => __( 'Description', $this->domain ),
+				'title'       => __( 'Description', 'wc-archway-payment-gateway' ),
 				'type'        => 'textarea',
-				'description' => __( 'Payment method description that the customer will see on your checkout.', $this->domain ),
-				'default'     => __('Payment Information', $this->domain),
+				'description' => __( 'Payment method description that the customer will see on your checkout.', 'wc-archway-payment-gateway' ),
+				'default'     => __('Payment Information', 'wc-archway-payment-gateway'),
 				'desc_tip'    => true,
 			),
 			'instructions' => array(
-				'title'       => __( 'Instructions', $this->domain ),
+				'title'       => __( 'Instructions', 'wc-archway-payment-gateway' ),
 				'type'        => 'textarea',
-				'description' => __( 'Instructions that will be added to the thank you page and emails.', $this->domain ),
+				'description' => __( 'Instructions that will be added to the thank you page and emails.', 'wc-archway-payment-gateway' ),
 				'default'     => '',
 				'desc_tip'    => true,
 			),
-			'api_url' => array(
-				'title'       => __( 'API URL', $this->domain ),
+			'is_sandbox' => array(
+				'title' => __( 'Is Sandbox?', 'wc-archway-payment-gateway' ),
+				'desc'  => __( 'If you\'re testing your payments, keep this checked.', 'wc-archway-payment-gateway' ),
+				'id'    => 'archway_is_sandbox',
+				'type'  => 'checkbox',
+			),
+			'process_transaction_api_url' => array(
+				'title'       => __( 'Process Transaction API URL', 'wc-archway-payment-gateway' ),
 				'type'        => 'text',
-				'description' => __( 'This controls the api url which pass to parameters on archway payment gateway.', $this->domain ),
-				'default'     => __( 'API URL', $this->domain ),
+				'description' => __( 'This controls the api url which pass to parameters on archway payment gateway.', 'wc-archway-payment-gateway' ),
+				'placeholder' => 'https://api.archwaypayments.com/v1/...',
 				'desc_tip'    => true,
 			),
-			'api_key' => array(
-				'title'       => __( 'API KEY', $this->domain ),
+			'sandbox_api_key' => array(
+				'title'       => __( 'Sandbox API KEY', 'wc-archway-payment-gateway' ),
 				'type'        => 'password',
-				'description' => __( 'This controls the api key which pass to archway payment gateway API.', $this->domain ),
-				'default'     => __( 'API KEY', $this->domain ),
+				'description' => __( 'This controls the api key which pass to archway payment gateway API.', 'wc-archway-payment-gateway' ),
+				'placeholder' => '****',
+				'desc_tip'    => true,
+			),
+			'production_api_key' => array(
+				'title'       => __( 'Production API KEY', 'wc-archway-payment-gateway' ),
+				'type'        => 'password',
+				'description' => __( 'This controls the api key which pass to archway payment gateway API.', 'wc-archway-payment-gateway' ),
+				'placeholder' => '****',
 				'desc_tip'    => true,
 			),
 		);
@@ -218,7 +221,7 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 		$status = 'wc-' === substr( $this->order_status, 0, 3 ) ? substr( $this->order_status, 3 ) : $this->order_status;
 
 		// Set order status
-		$order->update_status( $status, __( 'Checkout with custom payment. ', $this->domain ) );
+		$order->update_status( $status, __( 'Checkout with custom payment. ', 'wc-archway-payment-gateway' ) );
 
 		// or call the Payment complete
 		// $order->payment_complete();
