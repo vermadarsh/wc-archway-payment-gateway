@@ -48,26 +48,68 @@ if ( ! function_exists( 'cf_get_posts' ) ) {
 
 		return new WP_Query( $args );
 	}
+}
 
-	/*
-	* Function to return HTML of All months
-	*/
-	function cpg_get_months() {
-	  $months = array(
-	    '01' => 'January',
-	    '02' => 'February',
-	    '03' => 'March',
-	    '04' => 'April',
-	    '05' => 'May',
-	    '06' => 'June',
-	    '07' => 'July',
-	    '08' => 'August',
-	    '09' => 'September',
-	    '10' => 'October',
-	    '11' => 'November',
-	    '12' => 'December',
+/**
+ * Check if the function exists.
+ */
+if ( ! function_exists( 'cf_get_months_array' ) ) {
+	/**
+	 * Get the months array.
+	 *
+	 * @return array
+	 * @since 1.0.0
+	 */
+	function cf_get_months_array() {
+		// Prepare the months array.
+		$months = array(
+			'01' => __( 'January', 'wc-archway-payment-gateway' ),
+			'02' => __( 'February', 'wc-archway-payment-gateway' ),
+			'03' => __( 'March', 'wc-archway-payment-gateway' ),
+			'04' => __( 'April', 'wc-archway-payment-gateway' ),
+			'05' => __( 'May', 'wc-archway-payment-gateway' ),
+			'06' => __( 'June', 'wc-archway-payment-gateway' ),
+			'07' => __( 'July', 'wc-archway-payment-gateway' ),
+			'08' => __( 'August', 'wc-archway-payment-gateway' ),
+			'09' => __( 'September', 'wc-archway-payment-gateway' ),
+			'10' => __( 'October', 'wc-archway-payment-gateway' ),
+			'11' => __( 'November', 'wc-archway-payment-gateway' ),
+			'12' => __( 'December', 'wc-archway-payment-gateway' ),
+		);
 
-	  );
-	  return $months;
+		/**
+		 * Months array.
+		 *
+		 * This filter helps to modify the months array.
+		 *
+		 * @param array $months Months array.
+		 * @return array
+		 * @since 1.0.0
+		 */
+		$months = apply_filters( 'cf_months_array', $months );
+
+		return $months;
+	}
+}
+
+/**
+ * Check if the function exists.
+ */
+if ( ! function_exists( 'cf_is_localhost' ) ) {
+	/**
+	 * Check if the user is in localhost.
+	 *
+	 * @return boolean
+	 * @since 1.0.0
+	 */
+	function cf_is_localhost() {
+		$localhost_ip_addresses = array(
+			'127.0.0.1',
+			'::1',
+		);
+
+		$current_ip = $_SERVER['REMOTE_ADDR'];
+
+		return ( in_array( $current_ip, $localhost_ip_addresses, true ) ) ? true : false;
 	}
 }

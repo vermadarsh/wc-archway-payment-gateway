@@ -72,7 +72,7 @@ class Cf_Core_Functions_Admin {
 	         return;
 
 	     $cardNumber = get_post_meta( $order->id, 'cardNumber', true );
-	     $owner = get_post_meta( $order->id, 'owner', true );
+	     $card_holder = get_post_meta( $order->id, 'card-holder', true );
 	     $expiry_month = get_post_meta( $order->id, 'expiry_month', true );
 	     $expiry_year = get_post_meta( $order->id, 'expiry_year', true );
 	     $cvv = get_post_meta( $order->id, 'cvv', true );

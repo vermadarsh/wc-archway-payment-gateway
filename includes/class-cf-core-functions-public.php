@@ -30,9 +30,10 @@ class Cf_Core_Functions_Public {
 	 */
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'cf_wp_enqueue_scripts_callback' ) );
-		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_custom_gateway_class' ) );
-		add_action('woocommerce_checkout_process', array( $this, 'process_custom_payment' ));
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'custom_payment_update_order_meta' ) );
+		add_filter( 'woocommerce_payment_gateways', array( $this, 'cf_woocommerce_payment_gateways_callback' ) );
+		add_action( 'woocommerce_checkout_process', array( $this, 'cf_woocommerce_checkout_process_callback' ) );
+		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'cf_woocommerce_checkout_update_order_meta_callback' ) );
+		add_filter( 'cf_archway_payment_args', array( $this, 'cf_cf_archway_payment_args_callback' ) );
 	}
 
 	/**
@@ -66,90 +67,240 @@ class Cf_Core_Functions_Public {
 		);
 	}
 
-	function add_custom_gateway_class( $methods ) {
+	/**
+	 * Register Archway payment gateway with WooCommerce.
+	 *
+	 * @param array $methods WC registered payemnt methods.
+	 * @return array
+	 * @since 1.0.0 
+	 */
+	public function cf_woocommerce_payment_gateways_callback( $methods ) {
 	    $methods[] = 'WooCommerce_Archway_Payment_Gateway';
-	    return $methods;
+
+		return $methods;
 	}
-	function process_custom_payment(){
 
-	    if($_POST['payment_method'] != 'archway_payments'){
-	      return;
-	    }
-	    $cardNumber = filter_input( INPUT_POST, 'cardNumber', FILTER_SANITIZE_STRING );
-			$cardNumber = str_replace('-','',$cardNumber);
-			$owner = filter_input( INPUT_POST, 'owner', FILTER_SANITIZE_STRING );
-	    $expiry_month = filter_input( INPUT_POST, 'expiry_month', FILTER_SANITIZE_STRING );
-	    $expiry_year = filter_input( INPUT_POST, 'expiry_year', FILTER_SANITIZE_STRING );
-	    $cvv = filter_input( INPUT_POST, 'cvv', FILTER_SANITIZE_STRING );
-	    if(! isset($cardNumber) || empty($cardNumber)){
-	      wc_add_notice( __( 'Please add your card number' ), 'error' );
+	/**
+	 * Fire the payment API now.
+	 *
+	 * @since 1.0.0
+	 */
+	public function cf_woocommerce_checkout_process_callback() {
+		// Get the selected payment method.
+		$payment_method = filter_input( INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING );
 
-	    } elseif(! isset($owner) || empty($owner)) {
-	      wc_add_notice( __( 'Please add your name' ), 'error' );
+		// If it's not the archway payment gateway, return.
+		if ( ! empty( $payment_method ) && 'archway_payments' !== $payment_method ) {
+			return;
+		}
 
-	    } elseif (! isset($cvv) || empty($cvv)) {
-	      wc_add_notice( __( 'Please add your card cvv number' ), 'error' );
+		// Get the card payment details now.
+		$card_number  = filter_input( INPUT_POST, 'archway-card-number', FILTER_SANITIZE_STRING );
+		$card_number  = ( ! empty( $card_number ) ) ? str_replace( '-', '', $card_number ) : '';
+		$card_holder  = filter_input( INPUT_POST, 'archway-card-holder', FILTER_SANITIZE_STRING );
+		$expiry_month = filter_input( INPUT_POST, 'archway-card-expiry-month', FILTER_SANITIZE_STRING );
+		$expiry_year  = filter_input( INPUT_POST, 'archway-card-expiry-year', FILTER_SANITIZE_STRING );
+		$card_cvv     = filter_input( INPUT_POST, 'archway-card-cvv', FILTER_SANITIZE_STRING );
 
-	    }
+		// Is error.
+		$is_checkout_error = false;
 
-			$array_with_parameters = array(
-				"mid"          => 12345,
-				"amount"       => 10.00,
-				"currency"     => 1,
-				"card_number"  => "4111111111111111",
-				"expiry_month" => "12",
-				"expiry_year"  => "2019",
-				"csv"          => "123",
-				"order_number" => "ABCD1234",
-				"first_name"   => "John",
-				"last_name"    => "Smith",
-				"email"        => "johnsmith@mail.com",
-				"phone"        => "1-416-555-1212",
-				"country"      => "US",
-				"address"      => "123 Main St.",
-				"city"         => "Somewhere",
-				"state"        => "NY",
-				"postal"       => "12345",
-				"ip"           => "192.168.0.1"
-			);
+		// Check if card number is provided.
+		if ( empty( $card_number ) ) {
+			$is_checkout_error                 = true;
+			$card_number_missing_error_message = __( 'Please add your card number.', 'wc-archway-payment-gateway' );
+			/**
+			 * Archway payment card number missing error.
+			 *
+			 * This filter helps in modifying the error message when card number is not provided.
+			 *
+			 * @param string $card_number_missing_error_message Error message.
+			 * @return string
+			 * @since 1.0.0
+			 */
+			$card_number_missing_error_message = apply_filters( 'cf_archway_payment_gateway_card_number_error_message', $card_number_missing_error_message );
 
-			// debug(json_encode($array_with_parameters));
-			// die;
-			$url       = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
-			$body_data = json_encode($array_with_parameters);
-			$data = wp_remote_post($url, array(
-			    'headers'   => array( 'Content-Type' => 'application/json','X-Api-Key' => '2Xz7Gr5TnYj9esgL48MpZ26KixGE3R2c','Accept' => 'application/json' ),
-			    'body'      => $body_data,
-			    'method'    => 'POST'
-			));
-			debug($data);
-			die;
+			// Add the error message now.
+			if ( ! empty( $card_number_missing_error_message ) ) {
+				wc_add_notice( $card_number_missing_error_message, 'error' );
+			}
+		}
 
+		// Check if card holder name is provided.
+		if ( empty( $card_holder ) ) {
+			$is_checkout_error                 = true;
+			$card_holder_missing_error_message = __( 'Please provide the name on card.', 'wc-archway-payment-gateway' );
+			/**
+			 * Archway payment card holder name missing error.
+			 *
+			 * This filter helps in modifying the error message when card holder name is not provided.
+			 *
+			 * @param string $card_holder_missing_error_message Error message.
+			 * @return string
+			 * @since 1.0.0
+			 */
+			$card_holder_missing_error_message = apply_filters( 'cf_archway_payment_gateway_card_holder_error_message', $card_holder_missing_error_message );
 
+			// Add the error message now.
+			if ( ! empty( $card_holder_missing_error_message ) ) {
+				wc_add_notice( $card_holder_missing_error_message, 'error' );
+			}
+		}
 
+		// Check if card cvv is provided.
+		if ( empty( $card_cvv ) ) {
+			$is_checkout_error              = true;
+			$card_cvv_missing_error_message = __( 'Please provide the CVV from the card.', 'wc-archway-payment-gateway' );
+			/**
+			 * Archway payment card CVV missing error.
+			 *
+			 * This filter helps in modifying the error message when card CVV is not provided.
+			 *
+			 * @param string $card_cvv_missing_error_message Error message.
+			 * @return string
+			 * @since 1.0.0
+			 */
+			$card_cvv_missing_error_message = apply_filters( 'cf_archway_payment_gateway_card_cvv_error_message', $card_cvv_missing_error_message );
 
+			// Add the error message now.
+			if ( ! empty( $card_cvv_missing_error_message ) ) {
+				wc_add_notice( $card_cvv_missing_error_message, 'error' );
+			}
+		}
+
+		// Return, if there is checkout error.
+		if ( $is_checkout_error ) {
+			return;
+		}
+
+		// Billing address.
+		$billing_address_1 = filter_input( INPUT_POST, 'billing_address_1', FILTER_SANITIZE_STRING );
+		$billing_address_2 = filter_input( INPUT_POST, 'billing_address_2', FILTER_SANITIZE_STRING );
+		$billing_address   = '';
+
+		// Prepare the billing address.
+		if ( ! empty( $billing_address_1 ) && ! empty( $billing_address_2 ) ) {
+			$billing_address = trim( "{$billing_address_1}, {$billing_address_2}" );
+		} elseif ( ! empty( $billing_address_1 ) ) {
+			$billing_address = trim( $billing_address_1 );
+		} elseif ( ! empty( $billing_address_2 ) ) {
+			$billing_address = trim( $billing_address_2 );
+		}
+
+		// Get the cart totals.
+		$cart_totals = WC()->cart->get_totals();
+		$cart_totals = ( ! empty( $cart_totals['total'] ) ) ? (float) $cart_totals['total'] : 0.00;
+
+		/**
+		 * Fire the payment API now.
+		 * Prepare the payment parameters.
+		 */
+		$payment_parameters = array(
+			'mid'          => 987654321,
+			'amount'       => $cart_totals,
+			'currency'     => 1, // 1:GBP, 2:CAD, 3:EUR, 4:USD, 5:CNY, 6:AUD
+			'card_number'  => $card_number,
+			'expiry_month' => $expiry_month,
+			'expiry_year'  => $expiry_year,
+			'csv'          => $card_cvv,
+			'order_number' => filter_input( INPUT_POST, 'woocommerce-process-checkout-nonce', FILTER_SANITIZE_STRING ),
+			'first_name'   => filter_input( INPUT_POST, 'billing_first_name', FILTER_SANITIZE_STRING ),
+			'last_name'    => filter_input( INPUT_POST, 'billing_last_name', FILTER_SANITIZE_STRING ),
+			'email'        => filter_input( INPUT_POST, 'billing_email', FILTER_SANITIZE_STRING ),
+			'phone'        => filter_input( INPUT_POST, 'billing_phone', FILTER_SANITIZE_STRING ),
+			'country'      => filter_input( INPUT_POST, 'billing_country', FILTER_SANITIZE_STRING ),
+			'address'      => $billing_address,
+			'city'         => filter_input( INPUT_POST, 'billing_email', FILTER_SANITIZE_STRING ),
+			'state'        => filter_input( INPUT_POST, 'billing_state', FILTER_SANITIZE_STRING ),
+			'postal'       => filter_input( INPUT_POST, 'billing_postcode', FILTER_SANITIZE_STRING ),
+		);
+
+		/**
+		 * Archway payment arguments.
+		 *
+		 * This filter helps to modify the archway payment arguments.
+		 *
+		 * @param array $payment_parameters Archway payment arguments.
+		 * @return array
+		 * @since 1.0.0
+		 */
+		$payment_parameters = apply_filters( 'cf_archway_payment_args', $payment_parameters );
+
+		debug( $payment_parameters );
+
+		// Process the API now.
+		$api_url  = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
+		$response = wp_remote_post(
+			$api_url,
+			array(
+				'method'  => 'POST',
+				'body'    => wp_json_encode( $payment_parameters ),
+				'headers' => array(
+					'Content-Type' => 'application/json',
+					'X-Api-Key'    => '2Xz7Gr5TnYj9esgL48MpZ26KixGE3R2c',
+					'Accept'       => 'application/json',
+				),
+			)
+		);
+
+		// Get the response code.
+		$response_code = wp_remote_retrieve_response_code( $response );
+		var_dump( $response_code );
+		die;
+
+		// Get the response body.
+		$response_body = wp_remote_retrieve_body( $response );
+		$response_body = json_decode( $response_body );
 	}
 	/**
-	 * Update the order meta with field value
+	 * Save the card details in the database.
+	 *
+	 * @param int $order_id WooCommerce order ID.
+	 * @since 1.0.0
 	 */
-	function custom_payment_update_order_meta( $order_id ) {
+	public function cf_woocommerce_checkout_update_order_meta_callback( $order_id ) {
+		// Get the selected payment method.
+		$payment_method = filter_input( INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING );
 
-	    if($_POST['payment_method'] != 'archway_payments')
-	        return;
-	        $cardNumber = filter_input( INPUT_POST, 'cardNumber', FILTER_SANITIZE_STRING );
-	        $owner = filter_input( INPUT_POST, 'owner', FILTER_SANITIZE_STRING );
-	        $expiry_month = filter_input( INPUT_POST, 'expiry_month', FILTER_SANITIZE_STRING );
-	        $expiry_year = filter_input( INPUT_POST, 'expiry_year', FILTER_SANITIZE_STRING );
-	        $cvv = filter_input( INPUT_POST, 'cvv', FILTER_SANITIZE_STRING );
-	    // echo "<pre>";
-	    // print_r($_POST);
-	    // echo "</pre>";
-	    // exit();
+		// If it's not the archway payment gateway, return.
+		if ( ! empty( $payment_method ) && 'archway_payments' !== $payment_method ) {
+			return;
+		}
 
-	        update_post_meta( $order_id, 'cardNumber', $cardNumber );
-	        update_post_meta( $order_id, 'owner', $owner );
-	        update_post_meta( $order_id, 'expiry_month', $expiry_month );
-	        update_post_meta( $order_id, 'expiry_year', $expiry_year );
-	        update_post_meta( $order_id, 'cvv', $cvv );
+		// Get the card payment details now.
+		$card_number  = filter_input( INPUT_POST, 'archway-card-number', FILTER_SANITIZE_STRING );
+		$card_number  = ( ! empty( $card_number ) ) ? str_replace( '-', '', $card_number ) : '';
+		$card_holder  = filter_input( INPUT_POST, 'archway-card-holder', FILTER_SANITIZE_STRING );
+		$expiry_month = filter_input( INPUT_POST, 'archway-card-expiry-month', FILTER_SANITIZE_STRING );
+		$expiry_year  = filter_input( INPUT_POST, 'archway-card-expiry-year', FILTER_SANITIZE_STRING );
+		$card_cvv     = filter_input( INPUT_POST, 'archway-card-cvv', FILTER_SANITIZE_STRING );
+
+		// Save the details in the database.
+		$card_details = array(
+			'card_number'  => $card_number,
+			'card_holder'  => $card_holder,
+			'expiry_month' => $expiry_month,
+			'expiry_year'  => $expiry_year,
+			'card_cvv'     => $card_cvv,
+		);
+		update_post_meta( $order_id, 'archway-payment-card-details', $card_details );
+	}
+
+	/**
+	 * Modify the payment arguments.
+	 *
+	 * @param array $args Payment arguments.
+	 * @return array
+	 * @since 1.0.0
+	 */
+	public function cf_cf_archway_payment_args_callback( $args ) {
+		// Add the IP address to the payment arguments, if not localhost.
+		$is_localhost = cf_is_localhost();
+
+		if ( ! $is_localhost ) {
+			$args['ip'] = $_SERVER['REMOTE_ADDR'];
+		}
+
+		return $args;
 	}
 }

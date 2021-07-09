@@ -7,21 +7,14 @@ jQuery( document ).ready( function( $ ) {
 	// Localized variables.
 	var ajaxurl = CF_Public_JS_Obj.ajaxurl;
 
-
-	$(document).on('keyup','#cardNumber',function() {
+	$(document).on('keyup','#archway-card-number',function() {
 		 var _this_character = $(this);
 		 // Function to add - after 4 character
 		 add_after_character(/(\d{4})(?=\d)/g,'-',_this_character);
 
 	} );
 
-	$(document).on('keyup','#expirationDate',function() {
-		var _this_character = $(this);
-		// Function to add / after 2 character
-		add_after_character(/(\d{2})(?=\d)/g,'/',_this_character);
-	} );
-
-	$(document).on('keyup','#cvv',function() {
+	$(document).on('keyup','#archway-card-cvv',function() {
 		var v =	$(this).val().replace(/\D/g, ''); // Remove non-numerics
 		$(this).val(v);
 	} );
