@@ -8,7 +8,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       WooCommerce Archway Payment Gateway
- * Plugin URI:        https://github.com/vermadarsh/
+ * Plugin URI:        https://github.com/vermadarsh/wc-archway-payment-gateway/
  * Description:       This plugin adds Archway Payment Gateway to your WooCommerce store.
  * Version:           1.0.0
  * Author:            Adarsh Verma
@@ -24,8 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
- * Currently plugin version.
- * Start at version 1.0.0 and use SemVer - https://semver.org
+ * Currently plugin version. Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
 define( 'CF_PLUGIN_VERSION', '1.0.0' );
