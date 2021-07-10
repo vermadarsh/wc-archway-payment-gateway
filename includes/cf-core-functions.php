@@ -126,17 +126,26 @@ if ( ! function_exists( 'cf_get_transaction' ) ) {
 	 * @since 1.0.0
 	 */
 	function cf_get_transaction( $transaction_id ) {
-		$api_url = "https://devapi.archwaypayments.com/v1/test/transaction/transaction?transaction_id={$transaction_id}";
+		$gateway_settings = woocommerce_archway_payments_settings();
+		$api_url          = ( ! empty( $gateway_settings['get_transaction_api_url'] ) ) ? $gateway_settings['get_transaction_api_url'] : '';
+		$api_key          = ( ! empty( $gateway_settings['api_key'] ) ) ? $gateway_settings['api_key'] : '';
 
+		// Return false, if the transaction API URL is not available.
+		if ( empty( $api_url ) || empty( $api_key ) ) {
+			return false;
+		}
+
+		// Fire the API now.
 		$response = wp_remote_get(
-			$api_url,
+			str_replace( '$transaction_id', $transaction_id, $api_url ),
 			array(
 				'headers' => array(
-					'X-Api-Key' => '2Xz7Gr5TnYj9esgL48MpZ26KixGE3R2c',
+					'X-Api-Key' => $api_key,
 				)
 			)
 		);
 
+		// Get response code.
 		$response_code = wp_remote_retrieve_response_code( $response );
 
 		if ( 200 === $response_code ) {
@@ -146,5 +155,48 @@ if ( ! function_exists( 'cf_get_transaction' ) ) {
 		}
 
 		return false;
+	}
+}
+
+/**
+ * Check if the function exists.
+ */
+if ( ! function_exists( 'cf_get_archway_payments_settings' ) ) {
+	/**
+	 * Get the archway payment settings.
+	 *
+	 * @return array
+	 * @since 1.0.0
+	 */
+	function woocommerce_archway_payments_settings() {
+		$settings = get_option( 'woocommerce_archway_payments_settings' );
+
+		// Is sandbox mode on.
+		$is_sandbox = ( ! empty( $settings['is_sandbox'] ) && 'yes' === $settings['is_sandbox'] ) ? true : false;
+
+		// Get transaction API URL.
+		$get_transaction_api_url = ( ! empty( $settings['get_transaction_api_url'] ) ) ? $settings['get_transaction_api_url'] : '';
+		if ( $is_sandbox && ! empty( $get_transaction_api_url ) ) {
+			$get_transaction_api_url = str_replace( 'https://api', 'https://devapi', $get_transaction_api_url );
+			$get_transaction_api_url = str_replace( 'v1/api/', 'v1/test/', $get_transaction_api_url );
+		}
+
+		// Process transaction API URL.
+		$process_transaction_api_url = ( ! empty( $settings['process_transaction_api_url'] ) ) ? $settings['process_transaction_api_url'] : '';
+		if ( $is_sandbox && ! empty( $process_transaction_api_url ) ) {
+			$process_transaction_api_url = str_replace( 'https://api', 'https://devapi', $process_transaction_api_url );
+			$process_transaction_api_url = str_replace( 'v1/api/', 'v1/test/', $process_transaction_api_url );
+		}
+
+		// Api Key.
+		$api_key = ( $is_sandbox ) ? $settings['sandbox_api_key'] : $settings['production_api_key'];
+
+		// Prepare the settings array.
+		return array(
+			'is_sandbox'                  => $is_sandbox,
+			'get_transaction_api_url'     => $get_transaction_api_url,
+			'process_transaction_api_url' => $process_transaction_api_url,
+			'api_key'                     => $api_key,
+		);
 	}
 }

@@ -28,8 +28,8 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 		$this->id                 = 'archway_payments';
 		$this->icon               = apply_filters( 'woocommerce_custom_gateway_icon', '' );
 		$this->has_fields         = false;
-		$this->method_title       = __( 'Archway Payments', 'wc-archway-payment-gateway' );
-		$this->method_description = __( 'Allows payments with custom gateway.', 'wc-archway-payment-gateway' );
+		$this->method_title       = __( 'Archway', 'wc-archway-payment-gateway' );
+		$this->method_description = __( 'Archway works by adding payment fields on checkout and then sending details to Archeay.', 'wc-archway-payment-gateway' );
 
 		// Load the settings.
 		$this->init_form_fields();
@@ -57,20 +57,20 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 	public function init_form_fields() {
 
 		$this->form_fields = array(
-			'enabled' => array(
+			'enabled'                     => array(
 				'title'   => __( 'Enable/Disable', 'wc-archway-payment-gateway' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Enable Custom Payment', 'wc-archway-payment-gateway' ),
 				'default' => 'yes'
 			),
-			'title' => array(
+			'title'                       => array(
 				'title'       => __( 'Title', 'wc-archway-payment-gateway' ),
 				'type'        => 'text',
 				'description' => __( 'This controls the title which the user sees during checkout.', 'wc-archway-payment-gateway' ),
 				'default'     => __( 'Archway Payments', 'wc-archway-payment-gateway' ),
 				'desc_tip'    => true,
 			),
-			'order_status' => array(
+			'order_status'                => array(
 				'title'       => __( 'Order Status', 'wc-archway-payment-gateway' ),
 				'type'        => 'select',
 				'class'       => 'wc-enhanced-select',
@@ -79,21 +79,21 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 				'desc_tip'    => true,
 				'options'     => wc_get_order_statuses()
 			),
-			'description' => array(
+			'description'                 => array(
 				'title'       => __( 'Description', 'wc-archway-payment-gateway' ),
 				'type'        => 'textarea',
 				'description' => __( 'Payment method description that the customer will see on your checkout.', 'wc-archway-payment-gateway' ),
 				'default'     => __('Payment Information', 'wc-archway-payment-gateway'),
 				'desc_tip'    => true,
 			),
-			'instructions' => array(
+			'instructions'                => array(
 				'title'       => __( 'Instructions', 'wc-archway-payment-gateway' ),
 				'type'        => 'textarea',
 				'description' => __( 'Instructions that will be added to the thank you page and emails.', 'wc-archway-payment-gateway' ),
 				'default'     => '',
 				'desc_tip'    => true,
 			),
-			'is_sandbox' => array(
+			'is_sandbox'                  => array(
 				'title' => __( 'Is Sandbox?', 'wc-archway-payment-gateway' ),
 				'desc'  => __( 'If you\'re testing your payments, keep this checked.', 'wc-archway-payment-gateway' ),
 				'id'    => 'archway_is_sandbox',
@@ -102,21 +102,28 @@ class WooCommerce_Archway_Payment_Gateway extends WC_Payment_Gateway {
 			'process_transaction_api_url' => array(
 				'title'       => __( 'Process Transaction API URL', 'wc-archway-payment-gateway' ),
 				'type'        => 'text',
-				'description' => __( 'This controls the api url which pass to parameters on archway payment gateway.', 'wc-archway-payment-gateway' ),
+				'description' => __( 'This API URL helps in processing a transaction. Put the production mode URL here.', 'wc-archway-payment-gateway' ),
 				'placeholder' => 'https://api.archwaypayments.com/v1/...',
 				'desc_tip'    => true,
 			),
-			'sandbox_api_key' => array(
+			'get_transaction_api_url'     => array(
+				'title'       => __( 'Get Transaction API URL', 'wc-archway-payment-gateway' ),
+				'type'        => 'text',
+				'description' => __( 'This API URL helps in fetching transaction details. Put the production mode URL here.', 'wc-archway-payment-gateway' ),
+				'placeholder' => 'https://api.archwaypayments.com/v1/...',
+				'desc_tip'    => true,
+			),
+			'sandbox_api_key'             => array(
 				'title'       => __( 'Sandbox API KEY', 'wc-archway-payment-gateway' ),
 				'type'        => 'password',
-				'description' => __( 'This controls the api key which pass to archway payment gateway API.', 'wc-archway-payment-gateway' ),
+				'description' => __( 'Archway payment gateway sandbox API key.', 'wc-archway-payment-gateway' ),
 				'placeholder' => '****',
 				'desc_tip'    => true,
 			),
-			'production_api_key' => array(
+			'production_api_key'          => array(
 				'title'       => __( 'Production API KEY', 'wc-archway-payment-gateway' ),
 				'type'        => 'password',
-				'description' => __( 'This controls the api key which pass to archway payment gateway API.', 'wc-archway-payment-gateway' ),
+				'description' => __( 'Archway payment gateway production API key.', 'wc-archway-payment-gateway' ),
 				'placeholder' => '****',
 				'desc_tip'    => true,
 			),

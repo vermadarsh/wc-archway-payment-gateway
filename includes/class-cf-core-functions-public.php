@@ -170,6 +170,17 @@ class Cf_Core_Functions_Public {
 			}
 		}
 
+		// Get the gateway settings.
+		$gateway_settings = woocommerce_archway_payments_settings();
+		$api_url          = ( ! empty( $gateway_settings['process_transaction_api_url'] ) ) ? $gateway_settings['process_transaction_api_url'] : '';
+		$api_key          = ( ! empty( $gateway_settings['api_key'] ) ) ? $gateway_settings['api_key'] : '';
+
+		// Return false, if the transaction API URL is not available.
+		if ( empty( $api_url ) || empty( $api_key ) ) {
+			$is_checkout_error = true;
+			wc_add_notice( __( 'Cannot process payment due to gateway settings error. Please contact site administrator.', 'wc-archway-payment-gateway' ), 'error' );
+		}
+
 		// Return, if there is checkout error.
 		if ( $is_checkout_error ) {
 			return;
@@ -229,16 +240,14 @@ class Cf_Core_Functions_Public {
 		$payment_parameters = apply_filters( 'cf_archway_payment_args', $payment_parameters );
 
 		// Process the API now.
-		$sandbox_api_url    = 'https://devapi.archwaypayments.com/v1/test/transaction/ProcessTransaction';
-		$production_api_url = 'https://api.archwaypayments.com/v1/test/transaction/ProcessTransaction';
 		$response = wp_remote_post(
-			$sandbox_api_url,
+			$api_url,
 			array(
 				'method'  => 'POST',
 				'body'    => wp_json_encode( $payment_parameters ),
 				'headers' => array(
 					'Content-Type' => 'application/json',
-					'X-Api-Key'    => '2Xz7Gr5TnYj9esgL48MpZ26KixGE3R2c',
+					'X-Api-Key'    => $api_key,
 					'Accept'       => 'application/json',
 				),
 			)
