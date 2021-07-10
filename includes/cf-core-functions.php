@@ -200,3 +200,39 @@ if ( ! function_exists( 'cf_get_archway_payments_settings' ) ) {
 		);
 	}
 }
+
+/**
+ * Check if the function exists.
+ */
+if ( ! function_exists( 'scf_write_payment_log' ) ) {
+	/**
+	 * Write log to the log file.
+	 *
+	 * @param string $message Holds the log message.
+	 * @return void
+	 */
+	function scf_write_payment_log( $message = '' ) {
+		global $wp_filesystem;
+
+		if ( empty( $message ) ) {
+			return;
+		}
+
+		require_once ABSPATH . '/wp-admin/includes/file.php';
+		WP_Filesystem();
+
+		$local_file = CF_LOG_DIR_PATH . 'sync-log.log';
+
+		// Fetch the old content.
+		if ( $wp_filesystem->exists( $local_file ) ) {
+			$content  = $wp_filesystem->get_contents( $local_file );
+			$content .= "\n" . gmdate( 'Y-m-d h:i:s' ) . ' :: ' . $message;
+		}
+
+		$wp_filesystem->put_contents(
+			$local_file,
+			$content,
+			FS_CHMOD_FILE // predefined mode settings for WP files.
+		);
+	}
+}

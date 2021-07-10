@@ -29,14 +29,18 @@ if ( ! defined( 'WPINC' ) ) {
  */
 define( 'CF_PLUGIN_VERSION', '1.0.0' );
 
-// Plugin path.
-if ( ! defined( 'CF_PLUGIN_PATH' ) ) {
-	define( 'CF_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
-}
-
-// Plugin URL.
-if ( ! defined( 'CF_PLUGIN_URL' ) ) {
-	define( 'CF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+/**
+ * Define the constants.
+ */
+$uploads_dir = wp_upload_dir();
+$cons        = array(
+	'CF_PLUGIN_PATH'  => plugin_dir_path( __FILE__ ),
+	'CF_PLUGIN_URL'   => plugin_dir_url( __FILE__ ),
+	'CF_LOG_DIR_URL'  => $uploads_dir['baseurl'] . '/archway-log/',
+	'CF_LOG_DIR_PATH' => $uploads_dir['basedir'] . '/archway-log/',
+);
+foreach ( $cons as $con => $value ) {
+	define( $con, $value );
 }
 
 /**
@@ -91,10 +95,25 @@ function run_core_funcitons() {
  * Checks for the required plugins to be installed and active.
  */
 function cf_plugins_loaded_callback() {
+	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'cf_plugin_actions_callback' );
 	run_core_funcitons();
 }
 
 add_action( 'plugins_loaded', 'cf_plugins_loaded_callback' );
+
+/**
+ * This function adds custom plugin actions.
+ *
+ * @param array $links Links array.
+ * @return array
+ */
+function cf_plugin_actions_callback( $links ) {
+	$this_plugin_links = array(
+		'<a title="' . __( 'Settings', 'wc-archway-payment-gateway' ) . '" href="' . esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=archway_payments' ) ) . '">' . __( 'Settings', 'wc-archway-payment-gateway' ) . '</a>',
+	);
+
+	return array_merge( $this_plugin_links, $links );
+}
 
 /**
  * Debugger function which shall be removed in production.

@@ -277,6 +277,9 @@ class Cf_Core_Functions_Public {
 			if ( ! empty( $error_message ) ) {
 				wc_add_notice( $error_message, 'error' );
 			}
+		} else {
+			// Set the reponse ID to the session to store log.
+			WC()->session->set( 'cf_archway_response_code', $response_code );
 		}
 	}
 
@@ -354,6 +357,13 @@ class Cf_Core_Functions_Public {
 		if ( ! empty( $transaction_id ) ) {
 			$posted_data['archway_transaction_id'] = $transaction_id;
 		}
+
+		// Get the response code.
+		$response_code = WC()->session->get( 'cf_archway_response_code' );
+
+		if ( ! empty( $response_code ) ) {
+			$posted_data['archway_response_code'] = $response_code;
+		}
 		
 		return $posted_data; 
 	}
@@ -368,12 +378,26 @@ class Cf_Core_Functions_Public {
 	public function cf_woocommerce_checkout_order_processed_callback( $order_id, $posted_data ) {
 		// Get the transaction ID from the posted data.
 		$transaction_id = ( ! empty( $posted_data['archway_transaction_id'] ) ) ? $posted_data['archway_transaction_id'] : '';
+		$response_code  = ( ! empty( $posted_data['archway_response_code'] ) ) ? $posted_data['archway_response_code'] : '';
 
+		// If the transaction ID is available.
 		if ( ! empty( $transaction_id ) ) {
 			update_post_meta( $order_id, 'archway-payment-transaction-id', $transaction_id );
 
 			// Unset the session now.
 			WC()->session->__unset( 'cf_archway_transaction_id' );
+
+			// Write the log.
+			scf_write_payment_log( "SUCCESS: Transaction completed for order id #{$order_id}. Transaction ID: #{$transaction_id}" );
+		}
+
+		// If the response code is available.
+		if ( ! empty( $response_code ) ) {
+			// Unset the session now.
+			WC()->session->__unset( 'cf_archway_response_code' );
+
+			// Write the log.
+			scf_write_payment_log( "ERROR: Transaction could not be completed for order id #{$order_id}. Response code: #{$response_code}" );
 		}
 	}
 }
