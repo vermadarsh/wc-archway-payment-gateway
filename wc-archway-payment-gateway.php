@@ -95,11 +95,35 @@ function run_core_funcitons() {
  * Checks for the required plugins to be installed and active.
  */
 function cf_plugins_loaded_callback() {
-	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'cf_plugin_actions_callback' );
-	run_core_funcitons();
+	$active_plugins = get_option( 'active_plugins' );
+	$is_wc_active   = in_array( 'woocommerce/woocommerce.php', $active_plugins, true );
+
+	if ( false === $is_wc_active || false === $is_dokan_active ) {
+		add_action( 'admin_notices', 'cf_admin_notices_callback' );
+	} else {
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'cf_plugin_actions_callback' );
+		run_core_funcitons();
+	}
 }
 
 add_action( 'plugins_loaded', 'cf_plugins_loaded_callback' );
+
+/**
+ * This function is called to show admin notices for any required plugin not active || installed.
+ */
+function cf_admin_notices_callback() {
+	$this_plugin_data = get_plugin_data( __FILE__ );
+	$this_plugin      = $this_plugin_data['Name'];
+	$wc_plugin        = __( 'WooCommerce', 'wc-archway-payment-gateway' );
+	?>
+	<div class="error">
+		<p>
+			<?php /* translators: 1: %s: string tag open, 2: %s: strong tag close, 3: %s: this plugin, 4: %s: woocommerce plugin */ ?>
+			<?php echo wp_kses_post( sprintf( __( '%1$s%3$s%2$s is ineffective as it requires %1$s%4$s%2$s to be installed and active.', 'wc-archway-payment-gateway' ), '<strong>', '</strong>', $this_plugin, $wc_plugin ) ); ?>
+		</p>
+	</div>
+	<?php
+}
 
 /**
  * This function adds custom plugin actions.
