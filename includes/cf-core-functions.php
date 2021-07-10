@@ -221,7 +221,8 @@ if ( ! function_exists( 'scf_write_payment_log' ) ) {
 		require_once ABSPATH . '/wp-admin/includes/file.php';
 		WP_Filesystem();
 
-		$local_file = CF_LOG_DIR_PATH . 'sync-log.log';
+		$local_file = CF_LOG_DIR_PATH . 'transactions-log.log';
+		$content    = '';
 
 		// Fetch the old content.
 		if ( $wp_filesystem->exists( $local_file ) ) {

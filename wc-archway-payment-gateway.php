@@ -98,7 +98,7 @@ function cf_plugins_loaded_callback() {
 	$active_plugins = get_option( 'active_plugins' );
 	$is_wc_active   = in_array( 'woocommerce/woocommerce.php', $active_plugins, true );
 
-	if ( false === $is_wc_active || false === $is_dokan_active ) {
+	if ( false === $is_wc_active ) {
 		add_action( 'admin_notices', 'cf_admin_notices_callback' );
 	} else {
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'cf_plugin_actions_callback' );

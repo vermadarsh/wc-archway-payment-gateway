@@ -125,6 +125,9 @@ class Cf_Core_Functions_Admin {
 		// Prepare the HTML if the transaction data is received.
 		ob_start();
 		if ( false !== $transaction && is_array( $transaction ) ) {
+			// Write the log.
+			scf_write_payment_log( "SUCCESS: Transaction details fetched for order id #{$order_id}. Transaction ID: #{$transaction_id}" );
+			
 			$transaction_arr = array(
 				'Card Number'  => ( ! empty( $transaction['card_number'] ) ) ? $transaction['card_number'] : '',
 				'IP'           => ( ! empty( $transaction['ip'] ) ) ? $transaction['ip'] : '',
