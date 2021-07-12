@@ -36,8 +36,8 @@ $uploads_dir = wp_upload_dir();
 $cons        = array(
 	'CF_PLUGIN_PATH'  => plugin_dir_path( __FILE__ ),
 	'CF_PLUGIN_URL'   => plugin_dir_url( __FILE__ ),
-	'CF_LOG_DIR_URL'  => $uploads_dir['baseurl'] . '/archway-log/',
-	'CF_LOG_DIR_PATH' => $uploads_dir['basedir'] . '/archway-log/',
+	'CF_LOG_DIR_URL'  => $uploads_dir['baseurl'] . '/wc-logs/',
+	'CF_LOG_DIR_PATH' => $uploads_dir['basedir'] . '/wc-logs/',
 );
 foreach ( $cons as $con => $value ) {
 	define( $con, $value );

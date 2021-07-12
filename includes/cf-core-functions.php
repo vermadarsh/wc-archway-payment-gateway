@@ -222,13 +222,15 @@ if ( ! function_exists( 'scf_write_payment_log' ) ) {
 		WP_Filesystem();
 
 		$local_file = CF_LOG_DIR_PATH . 'transactions-log.log';
-		$content    = '';
 
-		// Fetch the old content.
-		if ( $wp_filesystem->exists( $local_file ) ) {
-			$content  = $wp_filesystem->get_contents( $local_file );
-			$content .= "\n" . gmdate( 'Y-m-d h:i:s' ) . ' :: ' . $message;
+		// If the file doesn't exist.
+		if ( ! $wp_filesystem->exists( $local_file ) ) {
+			return;
 		}
+
+		// Fetch the old content and add the new content.
+		$content  = $wp_filesystem->get_contents( $local_file );
+		$content .= "\n" . gmdate( 'Y-m-d h:i:s' ) . ' :: ' . $message;
 
 		$wp_filesystem->put_contents(
 			$local_file,

@@ -28,7 +28,7 @@ class Cf_Core_Functions_Activator {
 		// Create a log directory within the WordPress uploads directory.
 		$_upload     = wp_upload_dir();
 		$_upload_dir = $_upload['basedir'];
-		$_upload_dir = "{$_upload_dir}/archway-log/";
+		$_upload_dir = "{$_upload_dir}/wc-logs/";
 
 		if ( ! file_exists( $_upload_dir ) ) {
 			mkdir( $_upload_dir, 0755, true );
